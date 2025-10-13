@@ -29,23 +29,37 @@ jobs:
           override: true
           components: rust-src
 
-      - name: Add Rust targets
-        run: |
-          rustup target add aarch64-linux-android armv7-linux-androideabi
+      - name: Add Rust ARM targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi
 
-      - name: Configure Rust Linker
+      - name: Set up specific NDK
+        id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25b
+
+      - name: Override NDK environment variables
         run: |
-          NDK_ROOT="/usr/local/lib/android/sdk/ndk/27.3.13750724"
+          echo "ANDROID_NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+          echo "NDK_HOME=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+
+      - name: Configure Rust Linker for Android
+        run: |
+          NDK_ROOT="${{ steps.setup-ndk.outputs.ndk-path }}"
           API_LEVEL=21
+
+          # For aarch64-linux-android
           echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${API_LEVEL}-clang" >> $GITHUB_ENV
           echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_AR=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar" >> $GITHUB_ENV
+
+          # For armv7-linux-androideabi
           echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${API_LEVEL}-clang" >> $GITHUB_ENV
           echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_AR=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar" >> $GITHUB_ENV
 
       - name: Build Zygisk C++ module
         run: $ANDROID_NDK_HOME/ndk-build -C zygisk/jni
 
-      - name: Build Rust CLI for all targets
+      - name: Build Rust CLI (ARM targets)
         run: |
           cargo build --release --target=aarch64-linux-android --manifest-path cli/Cargo.toml
           cargo build --release --target=armv7-linux-androideabi --manifest-path cli/Cargo.toml
