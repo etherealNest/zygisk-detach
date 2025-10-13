@@ -39,10 +39,14 @@ jobs:
           cache-dependency-path: ksu-webui/package.json
 
       - name: Build Zygisk C++ module
+        run: ndk-build -C zygisk/jni
+
+      - name: Configure Rust cross-compilation linker
         run: |
-          echo "Listing files in zygisk/jni:"
-          ls -l zygisk/jni
-          ndk-build -C zygisk/jni
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=aarch64-linux-android21-clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=armv7a-linux-androideabi21-clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_I686_LINUX_ANDROID_LINKER=i686-linux-android21-clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=x86_64-linux-android21-clang" >> $GITHUB_ENV
 
       - name: Build Rust CLI for all targets
         run: |
@@ -55,16 +59,15 @@ jobs:
         run: |
           cd ksu-webui
           npm install
-          npm install -g parcel
-          parcel build src/index.html --dist-dir ../magisk/webroot --no-source-maps --no-cache
+          npx parcel build src/index.html --dist-dir ../magisk/webroot --no-source-maps --no-cache
 
       - name: Package Magisk module
         run: |
           mkdir -p magisk/zygisk
-          cp zygisk/libs/arm64-v8a/zygisk_detach.so magisk/zygisk/arm64-v8a.so
-          cp zygisk/libs/armeabi-v7a/zygisk_detach.so magisk/zygisk/armeabi-v7a.so
-          cp zygisk/libs/x86/zygisk_detach.so magisk/zygisk/x86.so
-          cp zygisk/libs/x86_64/zygisk_detach.so magisk/zygisk/x86_64.so
+          cp zygisk/jni/libs/arm64-v8a/libzygisk_detach.so magisk/zygisk/arm64-v8a.so
+          cp zygisk/jni/libs/armeabi-v7a/libzygisk_detach.so magisk/zygisk/armeabi-v7a.so
+          cp zygisk/jni/libs/x86/libzygisk_detach.so magisk/zygisk/x86.so
+          cp zygisk/jni/libs/x86_64/libzygisk_detach.so magisk/zygisk/x86_64.so
           cp cli/target/aarch64-linux-android/release/cli magisk/detach-arm64
           cp cli/target/armv7-linux-androideabi/release/cli magisk/detach-arm
           cp cli/target/i686-linux-android/release/cli magisk/detach-x86
