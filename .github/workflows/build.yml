@@ -1,0 +1,79 @@
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25b
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rust-src
+
+      - name: Add Rust targets
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ksu-webui/package.json
+
+      - name: Build Zygisk C++ module
+        run: |
+          echo "Listing files in zygisk/jni:"
+          ls -l zygisk/jni
+          ndk-build -C zygisk/jni
+
+      - name: Build Rust CLI for all targets
+        run: |
+          cargo build --release --target=aarch64-linux-android -p cli
+          cargo build --release --target=armv7-linux-androideabi -p cli
+          cargo build --release --target=i686-linux-android -p cli
+          cargo build --release --target=x86_64-linux-android -p cli
+
+      - name: Build WebUI
+        run: |
+          cd ksu-webui
+          npm install
+          npm install -g parcel
+          parcel build src/index.html --dist-dir ../magisk/webroot --no-source-maps --no-cache
+
+      - name: Package Magisk module
+        run: |
+          mkdir -p magisk/zygisk
+          cp zygisk/libs/arm64-v8a/zygisk_detach.so magisk/zygisk/arm64-v8a.so
+          cp zygisk/libs/armeabi-v7a/zygisk_detach.so magisk/zygisk/armeabi-v7a.so
+          cp zygisk/libs/x86/zygisk_detach.so magisk/zygisk/x86.so
+          cp zygisk/libs/x86_64/zygisk_detach.so magisk/zygisk/x86_64.so
+          cp cli/target/aarch64-linux-android/release/cli magisk/detach-arm64
+          cp cli/target/armv7-linux-androideabi/release/cli magisk/detach-arm
+          cp cli/target/i686-linux-android/release/cli magisk/detach-x86
+          cp cli/target/x86_64-linux-android/release/cli magisk/detach-x86_64
+          cd magisk
+          zip -r ../zygisk-detach.zip .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: zygisk-detach
+          path: zygisk-detach.zip
