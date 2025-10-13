@@ -31,31 +31,16 @@ jobs:
 
       - name: Add Rust targets
         run: |
-          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+          rustup target add aarch64-linux-android armv7-linux-androideabi
 
       - name: Configure Rust Linker
         run: |
-          # Use the pre-installed NDK. The path is from the diagnostic log.
-          # The key is to add -L flags for both the platform-specific libs and the toolchain-specific libs (for libunwind).
           NDK_ROOT="/usr/local/lib/android/sdk/ndk/27.3.13750724"
-          LLVM_TRIPLE_AARCH64="aarch64-linux-android"
-          LLVM_TRIPLE_ARMV7="arm-linux-androideabi"
-          LLVM_TRIPLE_I686="i686-linux-android"
-          LLVM_TRIPLE_X86_64="x86_64-linux-android"
           API_LEVEL=21
-
-          # Set environment variables for Cargo
-          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/${LLVM_TRIPLE_AARCH64}${API_LEVEL}-clang" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${API_LEVEL}-clang" >> $GITHUB_ENV
           echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_AR=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar" >> $GITHUB_ENV
-
           echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${API_LEVEL}-clang" >> $GITHUB_ENV
           echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_AR=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar" >> $GITHUB_ENV
-
-          echo "CARGO_TARGET_I686_LINUX_ANDROID_LINKER=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/${LLVM_TRIPLE_I686}${API_LEVEL}-clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_I686_LINUX_ANDROID_AR=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ar" >> $GITHUB_ENV
-
-          echo "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/${LLVM_TRIPLE_X86_64}${API_LEVEL}-clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_LINUX_ANDROID_AR=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ar" >> $GITHUB_ENV
 
       - name: Build Zygisk C++ module
         run: $ANDROID_NDK_HOME/ndk-build -C zygisk/jni
@@ -64,8 +49,6 @@ jobs:
         run: |
           cargo build --release --target=aarch64-linux-android --manifest-path cli/Cargo.toml
           cargo build --release --target=armv7-linux-androideabi --manifest-path cli/Cargo.toml
-          cargo build --release --target=i686-linux-android --manifest-path cli/Cargo.toml
-          cargo build --release --target=x86_64-linux-android --manifest-path cli/Cargo.toml
 
       - name: Build WebUI
         run: |
@@ -78,12 +61,8 @@ jobs:
           mkdir -p magisk/zygisk
           cp zygisk/libs/arm64-v8a/libzygisk_detach.so magisk/zygisk/arm64-v8a.so
           cp zygisk/libs/armeabi-v7a/libzygisk_detach.so magisk/zygisk/armeabi-v7a.so
-          cp zygisk/libs/x86/libzygisk_detach.so magisk/zygisk/x86.so
-          cp zygisk/libs/x86_64/libzygisk_detach.so magisk/zygisk/x86_64.so
           cp cli/target/aarch64-linux-android/release/cli magisk/detach-arm64
           cp cli/target/armv7-linux-androideabi/release/cli magisk/detach-arm
-          cp cli/target/i686-linux-android/release/cli magisk/detach-x86
-          cp cli/target/x86_64-linux-android/release/cli magisk/detach-x86_64
           cd magisk
           zip -r ../zygisk-detach.zip .
 
