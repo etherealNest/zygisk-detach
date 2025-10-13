@@ -46,10 +46,10 @@ jobs:
 
       - name: Build Rust CLI for all targets
         run: |
-          cargo build --release --target=aarch64-linux-android -p cli
-          cargo build --release --target=armv7-linux-androideabi -p cli
-          cargo build --release --target=i686-linux-android -p cli
-          cargo build --release --target=x86_64-linux-android -p cli
+          cargo build --release --target=aarch64-linux-android --manifest-path cli/Cargo.toml
+          cargo build --release --target=armv7-linux-androideabi --manifest-path cli/Cargo.toml
+          cargo build --release --target=i686-linux-android --manifest-path cli/Cargo.toml
+          cargo build --release --target=x86_64-linux-android --manifest-path cli/Cargo.toml
 
       - name: Build WebUI
         run: |
