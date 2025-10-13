@@ -1,14 +1,10 @@
-name: Build
+name: Diagnostic
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
   workflow_dispatch:
 
 jobs:
-  build:
+  debug:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,71 +12,27 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up NDK
+        id: setup-ndk
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25b
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
-          components: rust-src
-
-      - name: Add Rust targets
+      - name: Print Environment Details
         run: |
-          rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: ksu-webui/package.json
-
-      - name: Build Zygisk C++ module
-        run: ndk-build -C zygisk/jni
-
-      - name: Configure Rust cross-compilation linker
-        run: |
-          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS=-C link-arg=--target=aarch64-linux-android21 -C link-arg=--sysroot=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot -L $ANDROID_NDK_HOME/platforms/android-21/arch-arm64/usr/lib" >> $GITHUB_ENV
-          echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER=clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_RUSTFLAGS=-C link-arg=--target=armv7a-linux-androideabi21 -C link-arg=--sysroot=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot -L $ANDROID_NDK_HOME/platforms/android-21/arch-arm/usr/lib" >> $GITHUB_ENV
-          echo "CARGO_TARGET_I686_LINUX_ANDROID_LINKER=clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_I686_LINUX_ANDROID_RUSTFLAGS=-C link-arg=--target=i686-linux-android21 -C link-arg=--sysroot=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot -L $ANDROID_NDK_HOME/platforms/android-21/arch-x86/usr/lib" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER=clang" >> $GITHUB_ENV
-          echo "CARGO_TARGET_X86_64_LINUX_ANDROID_RUSTFLAGS=-C link-arg=--target=x86_64-linux-android21 -C link-arg=--sysroot=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot -L $ANDROID_NDK_HOME/platforms/android-21/arch-x86_64/usr/lib" >> $GITHUB_ENV
-
-      - name: Build Rust CLI for all targets
-        run: |
-          cargo build --release --target=aarch64-linux-android --manifest-path cli/Cargo.toml
-          cargo build --release --target=armv7-linux-androideabi --manifest-path cli/Cargo.toml
-          cargo build --release --target=i686-linux-android --manifest-path cli/Cargo.toml
-          cargo build --release --target=x86_64-linux-android --manifest-path cli/Cargo.toml
-
-      - name: Build WebUI
-        run: |
-          cd ksu-webui
-          npm install
-          npx parcel build src/index.html --dist-dir ../magisk/webroot --no-source-maps --no-cache
-
-      - name: Package Magisk module
-        run: |
-          mkdir -p magisk/zygisk
-          cp zygisk/jni/libs/arm64-v8a/libzygisk_detach.so magisk/zygisk/arm64-v8a.so
-          cp zygisk/jni/libs/armeabi-v7a/libzygisk_detach.so magisk/zygisk/armeabi-v7a.so
-          cp zygisk/jni/libs/x86/libzygisk_detach.so magisk/zygisk/x86.so
-          cp zygisk/jni/libs/x86_64/libzygisk_detach.so magisk/zygisk/x86_64.so
-          cp cli/target/aarch64-linux-android/release/cli magisk/detach-arm64
-          cp cli/target/armv7-linux-androideabi/release/cli magisk/detach-arm
-          cp cli/target/i686-linux-android/release/cli magisk/detach-x86
-          cp cli/target/x86_64-linux-android/release/cli magisk/detach-x86_64
-          cd magisk
-          zip -r ../zygisk-detach.zip .
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zygisk-detach
-          path: zygisk-detach.zip
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
+          echo "NDK path from step output: ${{ steps.setup-ndk.outputs.ndk-path }}"
+          echo "-------------------------------------------------"
+          echo "PATH: $PATH"
+          echo "-------------------------------------------------"
+          echo "Listing NDK root directory ($ANDROID_NDK_HOME):"
+          ls -l $ANDROID_NDK_HOME
+          echo "-------------------------------------------------"
+          echo "Listing NDK toolchain bin directory:"
+          ls -l $ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin
+          echo "-------------------------------------------------"
+          echo "Searching for libunwind.a:"
+          find $ANDROID_NDK_HOME -name "libunwind.a"
+          echo "-------------------------------------------------"
+          echo "Searching for crtbegin_dynamic.o:"
+          find $ANDROID_NDK_HOME -name "crtbegin_dynamic.o"
