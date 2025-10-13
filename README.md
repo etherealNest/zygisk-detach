@@ -1,5 +1,10 @@
 # zygisk-detach
 
+> **Note on this Fork**
+> 
+> The original project's source code is open, but it lacks the necessary scripts and configuration to be built. This makes it impossible to independently compile the module and verify its safety.
+> 
+> This fork solves this problem by adding a fully automated build process via GitHub Actions. Now anyone can either build the module from source themselves or inspect the entire build process.
 Detaches installed apps from Play Store against its aggressive updating policy which ignores the auto-update option user sets.
 
 ### How

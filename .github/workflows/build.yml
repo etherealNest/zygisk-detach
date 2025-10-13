@@ -22,15 +22,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ksu-webui/package.json
 
-      - name: Set up Rust
-        uses: actions-rs/toolchain@v1
+      - name: Set up Rust toolchain
+        uses: moonrepo/setup-rust@v1
         with:
-          toolchain: nightly
-          override: true
-          components: rust-src
-
-      - name: Add Rust ARM targets
-        run: rustup target add aarch64-linux-android armv7-linux-androideabi
+          channel: 'nightly'
+          targets: 'aarch64-linux-android,armv7-linux-androideabi'
+          components: 'rust-src'
 
       - name: Set up specific NDK
         id: setup-ndk
