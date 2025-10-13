@@ -76,6 +76,15 @@ jobs:
       - name: Package Magisk module
         run: |
           mkdir -p magisk/zygisk
+          echo "tree zygisk"
+          cd zygisk
+          tree
+          cd ..
+          echo "end"
+          echo "tree cli"
+          tree
+          cd ..
+          echo "end"
           cp zygisk/jni/libs/arm64-v8a/libzygisk_detach.so magisk/zygisk/arm64-v8a.so
           cp zygisk/jni/libs/armeabi-v7a/libzygisk_detach.so magisk/zygisk/armeabi-v7a.so
           cp zygisk/jni/libs/x86/libzygisk_detach.so magisk/zygisk/x86.so
